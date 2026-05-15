@@ -8,10 +8,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 public class TakingTurnsQueueTests
 {
     [TestMethod]
-    // Scenario: Create a queue with the following people and turns: Bob (2), Tim (5), Sue (3) and
-    // run until the queue is empty
+    // Scenario: This test walks through a normal finite rotation and makes sure people cycle back in
+    // the right order until their turns are gone.
     // Expected Result: Bob, Tim, Sue, Bob, Tim, Sue, Tim, Sue, Tim, Tim
-    // Defect(s) Found: 
+    // Defect(s) Found: The queue was acting like a stack, so people were coming back in the wrong order
+    // and Bob dropped out too early. Fixing the FIFO behavior in the backing queue made the rotation line up.
     public void TestTakingTurnsQueue_FiniteRepetition()
     {
         var bob = new Person("Bob", 2);
@@ -40,10 +41,11 @@ public class TakingTurnsQueueTests
     }
 
     [TestMethod]
-    // Scenario: Create a queue with the following people and turns: Bob (2), Tim (5), Sue (3)
-    // After running 5 times, add George with 3 turns.  Run until the queue is empty.
+    // Scenario: This one checks that adding someone later still puts them at the back of the same
+    // circular order instead of breaking the turn sequence that is already in progress.
     // Expected Result: Bob, Tim, Sue, Bob, Tim, Sue, Tim, George, Sue, Tim, George, Tim, George
-    // Defect(s) Found: 
+    // Defect(s) Found: The queue order was backwards before the fix, so the person added midway did not
+    // land in the expected spot. Keeping enqueue/dequeue as real FIFO behavior fixed that.
     public void TestTakingTurnsQueue_AddPlayerMidway()
     {
         var bob = new Person("Bob", 2);
@@ -82,10 +84,11 @@ public class TakingTurnsQueueTests
     }
 
     [TestMethod]
-    // Scenario: Create a queue with the following people and turns: Bob (2), Tim (Forever), Sue (3)
-    // Run 10 times.
+    // Scenario: This test makes sure a person with zero turns is treated as forever and keeps getting
+    // added back without changing the turns value.
     // Expected Result: Bob, Tim, Sue, Bob, Tim, Sue, Tim, Sue, Tim, Tim
-    // Defect(s) Found: 
+    // Defect(s) Found: Infinite-turn players were being removed after the first turn because the code only
+    // re-added people when turns were greater than one. Re-adding zero-or-less turns fixed it.
     public void TestTakingTurnsQueue_ForeverZero()
     {
         var timTurns = 0;
@@ -113,10 +116,11 @@ public class TakingTurnsQueueTests
     }
 
     [TestMethod]
-    // Scenario: Create a queue with the following people and turns: Tim (Forever), Sue (3)
-    // Run 10 times.
+    // Scenario: This is the same forever-turn idea, but with a negative number so it proves the code
+    // treats any zero-or-less value as unlimited turns.
     // Expected Result: Tim, Sue, Tim, Sue, Tim, Sue, Tim, Tim, Tim, Tim
-    // Defect(s) Found: 
+    // Defect(s) Found: Negative turns were not being preserved as infinite before the fix. The queue now
+    // sends that person to the back again without changing the original negative value.
     public void TestTakingTurnsQueue_ForeverNegative()
     {
         var timTurns = -3;
@@ -141,9 +145,11 @@ public class TakingTurnsQueueTests
     }
 
     [TestMethod]
-    // Scenario: Try to get the next person from an empty queue
+    // Scenario: This test checks the empty queue edge case so the class fails in a controlled way instead
+    // of returning bad data.
     // Expected Result: Exception should be thrown with appropriate error message.
-    // Defect(s) Found: 
+    // Defect(s) Found: No issue showed up here during debugging. The existing exception type and message
+    // already matched the requirement, so this test stayed as a guard for that behavior.
     public void TestTakingTurnsQueue_Empty()
     {
         var players = new TakingTurnsQueue();
